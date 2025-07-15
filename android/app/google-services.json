@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "456546408700",
+    "firebase_url": "https://the-sess-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "the-sess",
+    "storage_bucket": "the-sess.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:456546408700:android:011620c8eac94166fc1f79",
+        "android_client_info": {
+          "package_name": "com.example.smart_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxUnbXGlwtOIkL5iaqdsXAex7Yfco7foY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
