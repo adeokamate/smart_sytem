@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class MetricsScreen extends StatefulWidget {
+  const MetricsScreen({super.key});
+
   @override
   _MetricsScreenState createState() => _MetricsScreenState();
 }

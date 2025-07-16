@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'main_navigation.dart'; // Your dashboard/home screen
+import 'main_navigation.dart'; // your home/dashboard screen
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -30,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
-      // Login success — navigate to MainNavigation and remove login from stack
+      // Login success: navigate and remove login from stack
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => MainNavigation()),
@@ -63,16 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo - replace with your own image asset path
               Image.asset('assets/logo.png', height: 100),
               SizedBox(height: 24),
-
               Text(
                 "Smart System Login",
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 32),
-
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -83,7 +79,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               SizedBox(height: 16),
-
               TextField(
                 controller: passwordController,
                 obscureText: _obscurePassword,
@@ -106,7 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               SizedBox(height: 24),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -121,7 +115,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text("Login", style: TextStyle(fontSize: 18)),
                 ),
               ),
-
               if (error.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),

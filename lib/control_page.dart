@@ -1,8 +1,12 @@
 // control_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_screen.dart';
 
 class ControlPage extends StatefulWidget {
+  const ControlPage({super.key});
+
   @override
   _ControlPageState createState() => _ControlPageState();
 }
@@ -61,37 +65,37 @@ class _ControlPageState extends State<ControlPage> {
     required void Function(String) onCommand,
   }) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Text(
               '$title Status: $status',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 12,
               children: [
                 ElevatedButton(
                   onPressed: () => onCommand("ON"),
-                  child: Text("ON"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                   ),
+                  child: const Text("ON"),
                 ),
                 ElevatedButton(
                   onPressed: () => onCommand("OFF"),
-                  child: Text("OFF"),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: const Text("OFF"),
                 ),
                 ElevatedButton(
                   onPressed: () => onCommand("AUTO"),
-                  child: Text("AUTO"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                   ),
+                  child: const Text("AUTO"),
                 ),
               ],
             ),
@@ -104,7 +108,22 @@ class _ControlPageState extends State<ControlPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Smart Home Manual Control')),
+      appBar: AppBar(
+        title: const Text('THE SMART ENERGY SAVING DASHBOARD'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           buildDeviceControl(
