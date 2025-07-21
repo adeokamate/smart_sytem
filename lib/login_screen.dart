@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'main_navigation.dart'; // your home/dashboard screen
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -12,7 +12,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
   bool _obscurePassword = true;
   String error = '';
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -101,30 +100,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 16),
-
-// Register link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Don't have an account? "),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => RegisterScreen()),
-                      );
-                    },
-                    child: Text(
-                      "Register",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
               SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -132,6 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -148,6 +124,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(color: Colors.red, fontSize: 14),
                   ),
                 ),
+              SizedBox(height: 16),
+              Text(
+                "Contact admin for account access",
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ],
           ),
         ),
