@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:math' as math;
 
 class MetricsScreen extends StatefulWidget {
@@ -10,15 +11,15 @@ class MetricsScreen extends StatefulWidget {
 }
 
 class _MetricsScreenState extends State<MetricsScreen> {
-  final DatabaseReference tempRef = FirebaseDatabase.instance.ref(
-    'metrics/temperature',
-  );
-  final DatabaseReference distRef = FirebaseDatabase.instance.ref(
-    'metrics/distance',
-  );
+  final DatabaseReference _database = FirebaseDatabase.instanceFor(
+          app: Firebase.app(),
+          databaseURL: 'https://the-sess-default-rtdb.firebaseio.com/')
+      .ref();
 
   double temperature = 0.0;
   int distance = 0;
+  bool bulbState = false; // Added missing variables
+  bool fanState = false; // Added missing variables
 
   // Lists to store historical data for graphs
   List<DataPoint> temperatureData = [];
@@ -33,9 +34,12 @@ class _MetricsScreenState extends State<MetricsScreen> {
   @override
   void initState() {
     super.initState();
+    _setupListeners();
+  }
 
-    // Temperature listener with safe casting
-    tempRef.onValue.listen((event) {
+  void _setupListeners() {
+    // Temperature listener
+    _database.child('metrics/temperature').onValue.listen((event) {
       final value = event.snapshot.value;
       if (value is num) {
         setState(() {
@@ -45,8 +49,8 @@ class _MetricsScreenState extends State<MetricsScreen> {
       }
     });
 
-    // Distance listener with safe casting
-    distRef.onValue.listen((event) {
+    // Distance listener
+    _database.child('metrics/distance').onValue.listen((event) {
       final value = event.snapshot.value;
       if (value is num) {
         setState(() {
@@ -55,11 +59,29 @@ class _MetricsScreenState extends State<MetricsScreen> {
         });
       }
     });
+
+    // Device states listeners
+    _database.child('devices/bulb/state').onValue.listen((event) {
+      final value = event.snapshot.value;
+      if (value is bool) {
+        setState(() {
+          bulbState = value;
+        });
+      }
+    });
+
+    _database.child('devices/fan/state').onValue.listen((event) {
+      final value = event.snapshot.value;
+      if (value is bool) {
+        setState(() {
+          fanState = value;
+        });
+      }
+    });
   }
 
   void _addTemperatureDataPoint(double temp) {
     temperatureData.add(DataPoint(timeCounter.toDouble(), temp));
-
     // Keep only the last maxDataPoints
     if (temperatureData.length > maxDataPoints) {
       temperatureData.removeAt(0);
@@ -68,12 +90,10 @@ class _MetricsScreenState extends State<MetricsScreen> {
 
   void _addDistanceDataPoint(double dist) {
     distanceData.add(DataPoint(timeCounter.toDouble(), dist));
-
     // Keep only the last maxDataPoints
     if (distanceData.length > maxDataPoints) {
       distanceData.removeAt(0);
     }
-
     timeCounter++;
   }
 
@@ -81,7 +101,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sensor Metrics Analytics'),
+        title: const Text('Smart Energy System'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
       ),
@@ -105,6 +125,27 @@ class _MetricsScreenState extends State<MetricsScreen> {
                   '$distance cm',
                   Icons.straighten,
                   Colors.blue.shade400,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Device status cards
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildDeviceCard(
+                  'Bulb',
+                  bulbState,
+                  Icons.lightbulb,
+                  Colors.yellow.shade600,
+                ),
+                _buildDeviceCard(
+                  'Fan',
+                  fanState,
+                  Icons.air,
+                  Colors.blue.shade600,
                 ),
               ],
             ),
@@ -166,6 +207,47 @@ class _MetricsScreenState extends State<MetricsScreen> {
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeviceCard(
+      String title, bool state, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: state ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: state
+                  ? color.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: state ? color : Colors.grey, size: 30),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              state ? 'ON' : 'OFF',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: state ? color : Colors.grey,
               ),
             ),
           ],
@@ -238,7 +320,6 @@ class _MetricsScreenState extends State<MetricsScreen> {
 class DataPoint {
   final double x;
   final double y;
-
   DataPoint(this.x, this.y);
 }
 
@@ -275,6 +356,15 @@ class LineChartPainter extends CustomPainter {
     double maxY = data.map((e) => e.y).reduce(math.max);
     double minX = data.map((e) => e.x).reduce(math.min);
     double maxX = data.map((e) => e.x).reduce(math.max);
+
+    // Add padding to avoid division by zero
+    if (maxY == minY) {
+      maxY += 1;
+      minY -= 1;
+    }
+    if (maxX == minX) {
+      maxX += 1;
+    }
 
     // Add padding
     double yPadding = (maxY - minY) * 0.1;
@@ -370,3 +460,4 @@ class LineChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+
