@@ -13,7 +13,7 @@ class MetricsScreen extends StatefulWidget {
 class _MetricsScreenState extends State<MetricsScreen> {
   final DatabaseReference _database = FirebaseDatabase.instanceFor(
           app: Firebase.app(),
-          databaseURL: 'https://the-sess-default-rtdb.firebaseio.com/')
+          databaseURL: 'https://the-sess-default-rtdb.europe-west1.firebasedatabase.app')
       .ref();
 
   double temperature = 0.0;
