@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'main_navigation.dart';
+import 'package:firebase_database/firebase_database.dart';
+
 import 'firebase_options.dart';
+import 'main_navigation.dart';
 import 'login_screen.dart';
 
 void main() async {
@@ -12,6 +15,15 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // ✅ Only needed for web: provide databaseURL once
+    if (kIsWeb) {
+      FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL: 'https://the-sess-default-rtdb.firebaseio.com',
+      );
+    }
+
     runApp(const MyApp());
   } catch (e) {
     runApp(
@@ -21,7 +33,7 @@ void main() async {
             child: Text(
               '❌ Firebase initialization failed.\n\n$e',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red, fontSize: 18),
+              style: const TextStyle(color: Colors.red, fontSize: 18),
             ),
           ),
         ),
@@ -39,12 +51,14 @@ class MyApp extends StatelessWidget {
       title: 'Smart Home Control',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: AuthGate(), // Landing screen now uses auth state
+      home: const AuthGate(),
     );
   }
 }
 
 class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -55,9 +69,9 @@ class AuthGate extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         } else if (snapshot.hasData) {
-          return MainNavigation();
+          return const MainNavigation();
         } else {
-          return LoginScreen();
+          return const LoginScreen();
         }
       },
     );

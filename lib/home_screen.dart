@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'control_page.dart';
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -9,17 +10,17 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo - same as login screen
                 Image.asset('assets/logo.png', height: 100),
 
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 // Welcome title - matching login screen style
-                Text(
+                const Text(
                   "Welcome to Smart Energy System",
                   style: TextStyle(
                     fontSize: 26,
@@ -29,32 +30,32 @@ class HomeScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
 
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Subtitle
                 Text(
                   "Monitor and control your energy consumption efficiently",
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Colors.grey.shade600,
                     fontSize: 16,
                   ),
                   textAlign: TextAlign.center,
                 ),
 
-                SizedBox(height: 40),
+                const SizedBox(height: 40),
 
                 // Feature cards
                 Container(
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         spreadRadius: 1,
                         blurRadius: 10,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -80,11 +81,11 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 20),
-                      Text(
+                      const SizedBox(height: 20),
+                      const Text(
                         "Real-time monitoring • Smart automation • Energy optimization",
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: Colors.grey,
                           fontSize: 14,
                           fontStyle: FontStyle.italic,
                         ),
@@ -94,13 +95,13 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
 
-                SizedBox(height: 40),
+                const SizedBox(height: 40),
 
                 // Bottom info text - matching login screen style
-                Text(
+                const Text(
                   "Your smart energy management solution",
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Colors.grey,
                     fontSize: 14,
                     fontStyle: FontStyle.italic,
                   ),
@@ -121,10 +122,10 @@ class HomeScreen extends StatelessWidget {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
             border: Border.all(
-              color: color.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -134,11 +135,11 @@ class HomeScreen extends StatelessWidget {
             size: 24,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[700],
+            color: Colors.grey.shade700,
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
