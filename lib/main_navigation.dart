@@ -1,18 +1,24 @@
-// main_navigation.dart
+// lib/main_navigation.dart
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'control_page.dart';
 import 'metrics_screen.dart';
 
 class MainNavigation extends StatefulWidget {
+  const MainNavigation({super.key});
+
   @override
-  _MainNavigationState createState() => _MainNavigationState();
+  MainNavigationState createState() => MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [HomeScreen(), ControlPage(), MetricsScreen()];
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const ControlPage(),
+    const MetricsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {

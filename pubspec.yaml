@@ -11,28 +11,23 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   firebase_core: ^2.24.2
-  firebase_database: ^10.4.0      
   firebase_auth: ^4.15.3
-  # Added dependencies for analytics
+  firebase_database: ^10.4.0
   fl_chart: ^0.65.0
   intl: ^0.18.1
   upgrade: ^0.0.8
-  # Add explicit js dependency to fix interop issues
   js: ^0.6.7
+  clean: ^0.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
-# Override problematic dependencies
 dependency_overrides:
   js: ^0.6.7
-  web: ^0.5.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
-
-
