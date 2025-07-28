@@ -45,7 +45,8 @@ class ControlPageState extends State<ControlPage> {
   void _initDB() {
     _db = FirebaseDatabase.instanceFor(
       app: Firebase.app(),
-      databaseURL: 'https://the-sess-default-rtdb.europe-west1.firebasedatabase.app',
+      databaseURL:
+          'https://the-sess-default-rtdb.europe-west1.firebasedatabase.app',
     );
 
     _bulbCmdRef = _db.ref('devices/bulb');
@@ -56,9 +57,13 @@ class ControlPageState extends State<ControlPage> {
   }
 
   Future<void> _fetchTemperatureLogs() async {
-    final cutoff = DateTime.now().subtract(const Duration(hours: 2)).millisecondsSinceEpoch.toDouble();
+    final cutoff = DateTime.now()
+        .subtract(const Duration(hours: 2))
+        .millisecondsSinceEpoch
+        .toDouble();
     try {
-      final snapshot = await _logsRef.orderByChild('timestamp').startAt(cutoff).get();
+      final snapshot =
+          await _logsRef.orderByChild('timestamp').startAt(cutoff).get();
       final data = (snapshot.value as Map?)?.cast<String, dynamic>();
       print('Fetched logs: $data');
       if (data == null) {
@@ -73,7 +78,8 @@ class ControlPageState extends State<ControlPage> {
       data.forEach((key, value) {
         if (value is Map) {
           final casted = Map<String, dynamic>.from(value);
-          if (casted.containsKey('temperature') && casted.containsKey('timestamp')) {
+          if (casted.containsKey('temperature') &&
+              casted.containsKey('timestamp')) {
             final ts = (casted['timestamp'] as num?)?.toDouble() ?? 0.0;
             final temp = (casted['temperature'] as num?)?.toDouble() ?? 0.0;
             if (ts >= cutoff) {
@@ -117,7 +123,8 @@ class ControlPageState extends State<ControlPage> {
   }
 
   void _startPeriodicStatusCheck() {
-    _statusCheckTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    _statusCheckTimer =
+        Timer.periodic(const Duration(seconds: 5), (timer) async {
       if (!mounted) return;
       try {
         final bulbSnapshot = await _bulbStatusRef.get();
@@ -136,7 +143,8 @@ class ControlPageState extends State<ControlPage> {
     });
   }
 
-  Future<void> _setDevice(DatabaseReference ref, String label, String value) async {
+  Future<void> _setDevice(
+      DatabaseReference ref, String label, String value) async {
     setState(() {
       _isLoading = true;
       if (label == 'Bulb') {
@@ -150,7 +158,8 @@ class ControlPageState extends State<ControlPage> {
       await ref.set(value).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
-          throw Exception('Firebase write operation timed out after 10 seconds');
+          throw Exception(
+              'Firebase write operation timed out after 10 seconds');
         },
       );
       if (!mounted) return;
@@ -219,119 +228,7 @@ class ControlPageState extends State<ControlPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Temperature (last 2h)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 200,
-                    child: _tempSpots.isEmpty
-                        ? Container(
-                            height: 200,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.thermostat_outlined,
-                                       size: 48, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('No temperature data available',
-                                       style: TextStyle(color: Colors.grey)),
-                                  Text('Waiting for sensor data...',
-                                       style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                ],
-                              ),
-                            ),
-                          )
-                        : LineChart(
-                            LineChartData(
-                              minX: _tempSpots.first.x,
-                              maxX: _tempSpots.last.x,
-                              minY: math.max(0, _tempSpots.map((e) => e.y).reduce(math.min) - 2),
-                              maxY: _tempSpots.map((e) => e.y).reduce(math.max) + 2,
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: true,
-                                drawHorizontalLine: true,
-                                horizontalInterval: 5,
-                                verticalInterval: (_tempSpots.last.x - _tempSpots.first.x) / 4,
-                                getDrawingHorizontalLine: (value) {
-                                  return FlLine(
-                                    color: Colors.grey.shade300,
-                                    strokeWidth: 1,
-                                  );
-                                },
-                                getDrawingVerticalLine: (value) {
-                                  return FlLine(
-                                    color: Colors.grey.shade300,
-                                    strokeWidth: 1,
-                                  );
-                                },
-                              ),
-                              titlesData: FlTitlesData(
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: (_tempSpots.last.x - _tempSpots.first.x) / 4,
-                                    getTitlesWidget: (value, _) {
-                                      final dt = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                                      final label = DateFormat.Hm().format(dt);
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: Text(label, style: const TextStyle(fontSize: 10)),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 5,
-                                    getTitlesWidget: (value, _) {
-                                      return Text('${value.toInt()}°C',
-                                                  style: const TextStyle(fontSize: 10));
-                                    },
-                                  ),
-                                ),
-                                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              ),
-                              borderData: FlBorderData(
-                                show: true,
-                                border: Border.all(color: Colors.grey.shade400, width: 1),
-                              ),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: _tempSpots,
-                                  isCurved: true,
-                                  dotData: FlDotData(show: false),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    color: Colors.red.withOpacity(0.1),
-                                  ),
-                                  color: Colors.red,
-                                  barWidth: 2,
-                                ),
-                              ],
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // ...existing code...
           const SizedBox(height: 24),
           Card(
             child: Padding(
@@ -340,10 +237,14 @@ class ControlPageState extends State<ControlPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   Expanded(
-                    child: _DeviceStatus(icon: Icons.lightbulb, label: 'Bulb', status: _bulbStatus),
+                    child: _DeviceStatus(
+                        icon: Icons.lightbulb,
+                        label: 'Bulb',
+                        status: _bulbStatus),
                   ),
                   Expanded(
-                    child: _DeviceStatus(icon: Icons.air, label: 'Fan', status: _fanStatus),
+                    child: _DeviceStatus(
+                        icon: Icons.air, label: 'Fan', status: _fanStatus),
                   ),
                 ],
               ),
@@ -377,7 +278,8 @@ class ControlPageState extends State<ControlPage> {
 }
 
 class _DeviceStatus extends StatelessWidget {
-  const _DeviceStatus({required this.icon, required this.label, required this.status});
+  const _DeviceStatus(
+      {required this.icon, required this.label, required this.status});
 
   final IconData icon;
   final String label;
@@ -391,7 +293,8 @@ class _DeviceStatus extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: 40),
         const SizedBox(height: 8),
-        Text('$label: $status', style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+        Text('$label: $status',
+            style: TextStyle(fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }
@@ -420,9 +323,12 @@ class _DeviceControl extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: label == 'Bulb' ? Colors.orange : Colors.blue),
+                Icon(icon,
+                    color: label == 'Bulb' ? Colors.orange : Colors.blue),
                 const SizedBox(width: 8),
-                Text('$label Control', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('$label Control',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 12),
