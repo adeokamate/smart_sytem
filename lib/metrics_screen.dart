@@ -32,6 +32,12 @@ class MetricsScreenState extends State<MetricsScreen>
 
   late final AnimationController _blinkController;
   late final Animation<double> _blinkAnimation;
+  
+  // Stream subscriptions for proper disposal
+  StreamSubscription? _temperatureSubscription;
+  StreamSubscription? _bulbStatusSubscription;
+  StreamSubscription? _fanStatusSubscription;
+  StreamSubscription? _logsSubscription;
 
   @override
   void initState() {
@@ -56,6 +62,12 @@ class MetricsScreenState extends State<MetricsScreen>
 
   @override
   void dispose() {
+    // Cancel all stream subscriptions to prevent memory leaks
+    _temperatureSubscription?.cancel();
+    _bulbStatusSubscription?.cancel();
+    _fanStatusSubscription?.cancel();
+    _logsSubscription?.cancel();
+    
     _blinkController.dispose();
     super.dispose();
   }
@@ -83,24 +95,24 @@ class MetricsScreenState extends State<MetricsScreen>
   }
 
   void _listenToFirebase() {
-    _db.child('temperature').onValue.listen((event) {
+    _temperatureSubscription = _db.child('temperature').onValue.listen((event) {
       final v = event.snapshot.value;
-      if (v is num) setState(() => temperature = v.toDouble());
+      if (v is num && mounted) setState(() => temperature = v.toDouble());
     });
 
-    _db.child('status/bulb').onValue.listen((event) {
+    _bulbStatusSubscription = _db.child('status/bulb').onValue.listen((event) {
       final v = event.snapshot.value;
       print('Bulb status received: $v (type: ${v.runtimeType})');
-      if (v is String) {
+      if (v is String && mounted) {
         setState(() => bulbStatus = v);
         print('Bulb status updated to: $bulbStatus');
       }
     });
 
-    _db.child('status/fan').onValue.listen((event) {
+    _fanStatusSubscription = _db.child('status/fan').onValue.listen((event) {
       final v = event.snapshot.value;
       print('Fan status received: $v (type: ${v.runtimeType})');
-      if (v is String) {
+      if (v is String && mounted) {
         setState(() => fanStatus = v);
         print('Fan status updated to: $fanStatus');
       }
@@ -110,32 +122,54 @@ class MetricsScreenState extends State<MetricsScreen>
 void _listenToTemperatureLogs() {
   double? baseTimestamp;
 
-  _db.child('logs').onChildAdded.listen((event) {
-    final log = event.snapshot.value;
-    if (log is Map && log['temperature'] is num && log['timestamp'] is num) {
-      final y = (log['temperature'] as num).toDouble();
-      final timestamp = (log['timestamp'] as num).toDouble();
+  _logsSubscription = _db.child('logs').limitToLast(_maxDataPoints * 2).onValue.listen((event) {
+    final data = (event.snapshot.value as Map?)?.cast<String, dynamic>();
+    if (data == null) return;
 
-      baseTimestamp ??= timestamp;
-      final x = (timestamp - baseTimestamp!) / 60;
+    final List<DataPoint> newTemperatureData = [];
+    int latestDistance = distance;
+    int latestTimestamp = lastLogTimestamp;
 
-      if (!mounted) return;
-      setState(() {
-        temperatureData.add(DataPoint(x, y));
-        if (temperatureData.length > _maxDataPoints) {
-          temperatureData.removeAt(0);
+    data.forEach((key, value) {
+      if (value is Map) {
+        final casted = Map<String, dynamic>.from(value);
+        
+        // Process temperature data
+        if (casted.containsKey('temperature') && casted.containsKey('timestamp')) {
+          final timestamp = (casted['timestamp'] as num).toDouble();
+          final temp = (casted['temperature'] as num).toDouble();
+
+          baseTimestamp ??= timestamp;
+          final x = (timestamp - baseTimestamp!) / 60;
+
+          newTemperatureData.add(DataPoint(x, temp));
+          
+          if (timestamp > latestTimestamp) {
+            latestTimestamp = timestamp.toInt();
+          }
         }
-        // Update the last log timestamp
-        lastLogTimestamp = timestamp.toInt();
-      });
+        
+        // Process distance data
+        if (casted.containsKey('distance')) {
+          final distanceValue = (casted['distance'] as num).toDouble();
+          latestDistance = distanceValue.toInt();
+        }
+      }
+    });
+
+    // Sort by timestamp and keep only the latest points
+    newTemperatureData.sort((a, b) => a.x.compareTo(b.x));
+    if (newTemperatureData.length > _maxDataPoints) {
+      newTemperatureData.removeRange(0, newTemperatureData.length - _maxDataPoints);
     }
-    
-    // Also update distance from the same log entry
-    if (log is Map && log['distance'] is num) {
-      final distanceValue = (log['distance'] as num).toDouble();
-      if (!mounted) return;
-      setState(() => distance = distanceValue.toInt());
-    }
+
+    if (!mounted) return;
+    setState(() {
+      temperatureData.clear();
+      temperatureData.addAll(newTemperatureData);
+      distance = latestDistance;
+      lastLogTimestamp = latestTimestamp;
+    });
   });
 }
 

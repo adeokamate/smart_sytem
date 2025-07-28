@@ -1,0 +1,42 @@
+name: smart_system
+description: "A smart system Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Firebase Core + Auth + Realtime Database
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  firebase_database: ^10.4.0
+
+  # Charting for metrics
+  fl_chart: ^0.65.0
+
+  # Date/time formatting
+  intl: ^0.18.1
+
+  # JS interop for web compatibility
+  js: ^0.6.7
+
+  # Optional: update notifier (if you're using it)
+  upgrade: ^0.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+dependency_overrides:
+  js: ^0.6.7
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png

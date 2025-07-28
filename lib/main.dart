@@ -20,7 +20,7 @@ void main() async {
     if (kIsWeb) {
       FirebaseDatabase.instanceFor(
         app: Firebase.app(),
-        databaseURL: 'https://the-sess-default-rtdb.firebaseio.com',
+        databaseURL: 'https://the-sess-default-rtdb.europe-west1.firebasedatabase.app',
       );
     }
 
