@@ -11,7 +11,7 @@
 #define BULB_PIN 19  // Relay module
 #define FAN_PIN 21   // Motor fan (GPIO 5V control)
 
-// WiFi credentials
+// WiFis credentials
 //const char* ssid = "CoCIS Wireless";
 //const char* password = "Stud3ntp@55";
 
