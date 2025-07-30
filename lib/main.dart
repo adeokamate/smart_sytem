@@ -16,7 +16,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // ✅ Only needed for web: provide databaseURL once
+    // ✅ Only needed for web: provides databaseURL once
     if (kIsWeb) {
       FirebaseDatabase.instanceFor(
         app: Firebase.app(),
