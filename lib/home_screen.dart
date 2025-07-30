@@ -98,7 +98,7 @@ class HomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 40),
 
-                // Bottom info text - matching login screen style
+                // Bottom info text - matching login screen styles
                 const Text(
                   "Your smart energy management solution",
                   style: TextStyle(
