@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -18,6 +17,7 @@ class ControlPage extends StatefulWidget {
 class ControlPageState extends State<ControlPage> {
   Timer? _graphUpdateTimer;
   Timer? _statusCheckTimer;
+  Timer? _esp32StatusTimer;
   late final FirebaseDatabase _db;
   late final DatabaseReference _bulbCmdRef;
   late final DatabaseReference _fanCmdRef;
@@ -28,18 +28,22 @@ class ControlPageState extends State<ControlPage> {
   String _bulbStatus = 'Unknown';
   String _fanStatus = 'Unknown';
   bool _isLoading = false;
-  bool _isArduinoConnected = false;
+
+  // Threshold settings
+  double _temperatureThreshold = 25.0;
+  double _distanceThreshold = 15.0;
+  bool _showThresholdSettings = false;
 
   final List<FlSpot> _tempSpots = [];
+  List<DateTime> _timeLabels = [];
 
   @override
   void initState() {
     super.initState();
     _initDB();
-    _checkFirebaseConnection();
     _startPeriodicStatusCheck();
-    _fetchTemperatureLogs(); // Fetch logs for last 2 hours on load
-    _startGraphPeriodicUpdate(); // Update graph every 2 hours
+    _fetchTemperatureLogs();
+    _startGraphPeriodicUpdate();
   }
 
   void _initDB() {
@@ -54,46 +58,53 @@ class ControlPageState extends State<ControlPage> {
     _bulbStatusRef = _db.ref('status/bulb');
     _fanStatusRef = _db.ref('status/fan');
     _logsRef = _db.ref('logs');
+    _loadThresholds();
   }
 
   Future<void> _fetchTemperatureLogs() async {
     final cutoff = DateTime.now()
-        .subtract(const Duration(hours: 2))
+        .subtract(const Duration(minutes: 30))
         .millisecondsSinceEpoch
         .toDouble();
+
     try {
       final snapshot =
           await _logsRef.orderByChild('timestamp').startAt(cutoff).get();
       final data = (snapshot.value as Map?)?.cast<String, dynamic>();
-      print('Fetched logs: $data');
       if (data == null) {
         if (!mounted) return;
         setState(() {
           _tempSpots.clear();
+          _timeLabels.clear();
         });
         return;
       }
 
       final List<FlSpot> tempSpots = [];
+      final List<DateTime> times = [];
+
+      int index = 0;
       data.forEach((key, value) {
         if (value is Map) {
           final casted = Map<String, dynamic>.from(value);
           if (casted.containsKey('temperature') &&
               casted.containsKey('timestamp')) {
-            final ts = (casted['timestamp'] as num?)?.toDouble() ?? 0.0;
+            final ts = (casted['timestamp'] as num?)?.toInt() ?? 0;
             final temp = (casted['temperature'] as num?)?.toDouble() ?? 0.0;
             if (ts >= cutoff) {
-              tempSpots.add(FlSpot(ts, temp));
+              tempSpots.add(FlSpot(index.toDouble(), temp));
+              times.add(DateTime.fromMillisecondsSinceEpoch(ts));
+              index++;
             }
           }
         }
       });
 
-      tempSpots.sort((a, b) => a.x.compareTo(b.x));
       if (!mounted) return;
       setState(() {
         _tempSpots.clear();
         _tempSpots.addAll(tempSpots);
+        _timeLabels = times;
       });
     } catch (e) {
       print('❌ Error fetching temperature logs: $e');
@@ -101,24 +112,55 @@ class ControlPageState extends State<ControlPage> {
   }
 
   void _startGraphPeriodicUpdate() {
-    _graphUpdateTimer = Timer.periodic(const Duration(hours: 2), (timer) {
+    _graphUpdateTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
       _fetchTemperatureLogs();
     });
   }
 
-  void _checkFirebaseConnection() async {
-    print('🔍 Checking Firebase connection...');
-    print('🔍 Database URL: ${_db.app.options.databaseURL}');
+  Future<void> _loadThresholds() async {
     try {
-      final snapshot = await _db.ref('.info/connected').get();
-      final connected = snapshot.value as bool? ?? false;
-      print('🔍 Firebase connected: $connected');
+      final tempSnapshot = await _db.ref('settings/temperatureThreshold').get();
+      final distSnapshot = await _db.ref('settings/distanceThreshold').get();
+
       if (mounted) {
-        setState(() => _isArduinoConnected = connected);
+        setState(() {
+          if (tempSnapshot.value != null) {
+            _temperatureThreshold = (tempSnapshot.value as num).toDouble();
+          }
+          if (distSnapshot.value != null) {
+            _distanceThreshold = (distSnapshot.value as num).toDouble();
+          }
+        });
       }
     } catch (e) {
-      print('❌ Error checking Firebase connection: $e');
-      if (mounted) setState(() => _isArduinoConnected = false);
+      print('❌ Error loading thresholds: $e');
+    }
+  }
+
+  Future<void> _saveThresholds() async {
+    try {
+      await _db.ref('settings/temperatureThreshold').set(_temperatureThreshold);
+      await _db.ref('settings/distanceThreshold').set(_distanceThreshold);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Threshold settings saved successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error saving settings: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -194,27 +236,6 @@ class ControlPageState extends State<ControlPage> {
       appBar: AppBar(
         title: const Text('Smart Home Control'),
         actions: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _isArduinoConnected ? Colors.green : Colors.red,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _isArduinoConnected ? Icons.wifi : Icons.wifi_off,
-                  color: Colors.white,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _isArduinoConnected ? 'Connected' : 'Offline',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -228,8 +249,94 @@ class ControlPageState extends State<ControlPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ...existing code...
+          // Threshold Settings
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.tune, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Automatic Mode Settings',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(_showThresholdSettings
+                            ? Icons.expand_less
+                            : Icons.expand_more),
+                        onPressed: () {
+                          setState(() {
+                            _showThresholdSettings = !_showThresholdSettings;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  if (_showThresholdSettings) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Icon(Icons.thermostat,
+                            color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        const Text('Temperature Threshold:'),
+                        const Spacer(),
+                        Text('${_temperatureThreshold.toStringAsFixed(1)}°C'),
+                      ],
+                    ),
+                    Slider(
+                      value: _temperatureThreshold,
+                      min: 15.0,
+                      max: 40.0,
+                      divisions: 50,
+                      onChanged: (value) {
+                        setState(() {
+                          _temperatureThreshold = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Icon(Icons.straighten,
+                            color: Colors.orange, size: 20),
+                        const SizedBox(width: 8),
+                        const Text('Distance Threshold:'),
+                        const Spacer(),
+                        Text('${_distanceThreshold.toStringAsFixed(0)}cm'),
+                      ],
+                    ),
+                    Slider(
+                      value: _distanceThreshold,
+                      min: 5.0,
+                      max: 50.0,
+                      divisions: 45,
+                      onChanged: (value) {
+                        setState(() {
+                          _distanceThreshold = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _saveThresholds,
+                      icon: const Icon(Icons.save),
+                      label: const Text('Save Settings'),
+                    ),
+                  ]
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
+
+          // Device Status
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -264,6 +371,80 @@ class ControlPageState extends State<ControlPage> {
             onPressed: (v) => _setDevice(_fanCmdRef, 'Fan', v),
             isLoading: _isLoading,
           ),
+          const SizedBox(height: 24),
+
+          // Temperature Graph
+          if (_tempSpots.isNotEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.show_chart, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text(
+                          'Temperature (last 30 minutes)',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 200,
+                      child: LineChart(
+                        LineChartData(
+                          minY: _tempSpots.map((e) => e.y).reduce(math.min) - 1,
+                          maxY: _tempSpots.map((e) => e.y).reduce(math.max) + 1,
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: _tempSpots,
+                              isCurved: true,
+                              color: Colors.red,
+                              barWidth: 3,
+                              dotData: FlDotData(show: false),
+                            ),
+                          ],
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: true),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                interval: (_tempSpots.length / 4)
+                                    .clamp(1, 10)
+                                    .toDouble(),
+                                getTitlesWidget: (value, meta) {
+                                  final index = value.toInt();
+                                  if (index < 0 ||
+                                      index >= _timeLabels.length) {
+                                    return const SizedBox();
+                                  }
+                                  final date = _timeLabels[index];
+                                  final label =
+                                      "${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+                                  return SideTitleWidget(
+                                    axisSide: meta.axisSide,
+                                    child: Text(label,
+                                        style: const TextStyle(fontSize: 10)),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          gridData: FlGridData(show: true),
+                          borderData: FlBorderData(show: true),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -273,6 +454,7 @@ class ControlPageState extends State<ControlPage> {
   void dispose() {
     _statusCheckTimer?.cancel();
     _graphUpdateTimer?.cancel();
+    _esp32StatusTimer?.cancel();
     super.dispose();
   }
 }
@@ -329,6 +511,7 @@ class _DeviceControl extends StatelessWidget {
                 Text('$label Control',
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
               ],
             ),
             const SizedBox(height: 12),
@@ -345,20 +528,28 @@ class _DeviceControl extends StatelessWidget {
                   default:
                     bg = Colors.orange;
                 }
+
+                final isButtonEnabled = !isLoading;
+
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: ElevatedButton(
-                      onPressed: isLoading ? null : () => onPressed(value),
+                      onPressed:
+                          isButtonEnabled ? () => onPressed(value) : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: bg,
-                        foregroundColor: Colors.white,
+                        backgroundColor:
+                            isButtonEnabled ? bg : Colors.grey.shade300,
+                        foregroundColor: isButtonEnabled
+                            ? Colors.white
+                            : Colors.grey.shade600,
+                        elevation: isButtonEnabled ? 2 : 0,
                       ),
                       child: Text(value),
                     ),
                   ),
                 );
-              }).toList(), // <-- This is required!
+              }).toList(),
             ),
           ],
         ),
