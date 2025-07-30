@@ -17,7 +17,7 @@
    width: auto;
  }
  
- /* This is a hack for FireFox that the <b> tag does not work */
+ /*s  This is a hack for FireFox that the <b> tag does not work */
  strong,
  b {
    font-weight: bold;
